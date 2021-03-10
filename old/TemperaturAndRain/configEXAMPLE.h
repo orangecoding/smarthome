@@ -1,0 +1,5 @@
+#define wifiSsid "YOUR SSID"
+#define wifiKey "yourWiFiKey"
+#define temperatureUrl = "http://yourServer:9999/temperature?val"
+#define powerUrl = "http://yourServer.net:9999/power?val"
+#define homebridgeRainStateUrl = "http://yourHomebridgeIP:51828/?accessoryId=rain&state="

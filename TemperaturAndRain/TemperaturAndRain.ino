@@ -8,6 +8,8 @@
 #include <InfluxDbClient.h>
 #include <InfluxDbCloud.h>
 
+#define sensorPower 12
+
 #include "config.h"
 
 //By using this, we can read
@@ -27,6 +29,7 @@ float temperature;
 boolean bIsRaining;
 
 void setup() {
+  
   //safe power
   WiFi.mode( WIFI_OFF );
   WiFi.persistent( false );
@@ -36,11 +39,17 @@ void setup() {
   Serial.begin(115200);
   pinMode(rainDigital, INPUT);
 
+  digitalWrite(sensorPower, HIGH);  
+  delay(10);  
+  Serial.println(sensors.getDeviceCount());
   sensors.begin();
   sensors.requestTemperatures();
 
   temperature = sensors.getTempCByIndex(0);
   bIsRaining = !(digitalRead(rainDigital));
+
+  //shut off rain sensor
+  digitalWrite(sensorPower, LOW);  
 
   Serial.println(temperature);
   Serial.println(bIsRaining);
@@ -54,7 +63,7 @@ void setup() {
     Serial.print(".");
   }
   Serial.println("Connected!");
-
+  
   doHttpStuff();
   //deep sleep for 30 minutes
   ESP.deepSleep(1800000000);

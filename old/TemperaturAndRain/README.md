@@ -5,4 +5,4 @@ and send them either to Homebridge or to your server (in order to build up a his
 The ESP is going into deep sleep for the time when it is not actively reading any values to save power.
 
 ### Wiring
-<img src="https://github.com/orangecoding/weatherstation/blob/main/img/wiring.jpg" width="500">  
+<img src="https://github.com/orangecoding/smarthome/blob/main/old/img/wiring.jpg" width="500">  

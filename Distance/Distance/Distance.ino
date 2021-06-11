@@ -13,7 +13,13 @@ ADC_MODE(ADC_VCC);
 InfluxDBClient client(INFLUXDB_URL, INFLUXDB_ORG, INFLUXDB_BUCKET, INFLUXDB_TOKEN, InfluxDbCloud2CACert);
 Point sensor(DATAPOINT_NAME);
 
-long distance;
+int wasserMin = 20;
+int wasserLow = 17;
+int wasserMax = 6;
+//this is the distance between the top and the max water level
+int correctionValue = 8;
+long distance = 0;
+
 void setup(){
   //safe power
   WiFi.mode( WIFI_OFF );
@@ -24,10 +30,10 @@ void setup(){
   Serial.begin(115200);
   pinMode(trigPin, OUTPUT);
   pinMode(echoPin, INPUT);
-  delay( 10 );
+  delay( 50 );
   
   distance = getDistance();
-
+  delay( 10 );
   WiFi.forceSleepWake();
   delay( 1 );
   WiFi.begin(wifiSsid, wifiKey);
@@ -37,26 +43,47 @@ void setup(){
     Serial.print(".");
   }
   Serial.println("Connected!");
-
   Serial.println(distance);
+  Serial.println(getPercentage());
   
-  pushData();
+  pushDataToInflux();
+  pushDataToHomebridge();
   //deep sleep for 60 minutes
   ESP.deepSleep(3600000000);
  }
 
- void pushData() {
+ void pushDataToInflux() {
   float vccVolt = ((float)ESP.getVcc())/1024;
   
-  sensor.addField("wasserstand",  distance);
+  sensor.addField("wasserstand",  getPercentage());
   sensor.addField("power", vccVolt);
   
   if (!client.writePoint(sensor)) {
     Serial.print("InfluxDB write failed: ");
     Serial.println(client.getLastErrorMessage());
   }else{
-    Serial.print("Pushed to InfluxDB.");
+    Serial.print("Pushed data to InfluxDB.");
   }
+}
+
+void pushDataToHomebridge() {
+  HTTPClient http;
+  String state = getWarning();
+
+  //wasserstand min alarm
+  http.begin(homebridgeWasserstandStateUrl + state);
+  int httpCode = http.GET();
+  Serial.println(httpCode);
+  Serial.println("Send Wasserstand state Value" + String(state));
+  http.end();
+
+  //wasserstand state
+  float percentage = getPercentage();
+  http.begin(homebridgeWasserstandUrl + String(percentage));
+  int httpCode2 = http.GET();
+  Serial.println(httpCode2);
+  Serial.println("Send Wasserstand Value" + String(percentage));
+  http.end();
 }
 
 long getDistance(){
@@ -67,6 +94,24 @@ long getDistance(){
   digitalWrite(trigPin, LOW);
   //Calculate the distance (in cm) based on the speed of sound.
   return pulseIn(echoPin, HIGH)/58.2;
+}
+
+float getPercentage(){
+  float percentage = (float)distance / (float)wasserMin * (float)100;
+  float waterLeftInPercentage =  (float)100 - percentage;
+  if(waterLeftInPercentage < 0){
+    return 0;  
+  }
+
+  return waterLeftInPercentage; 
+}
+
+String getWarning(){
+  if(distance >= wasserMin){
+    return "true"; 
+  }else{
+    return "false";
+  }
 }
 
 void loop() {}
